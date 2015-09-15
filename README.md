@@ -2,6 +2,8 @@
 
 * ESP01 webserver example: https://github.com/platformio/platformio/blob/develop/examples/espressif/esp8266-webserver/src/HelloServer.ino
 * OneWire library: http://platformio.org/#!/lib/show/1/OneWire
+* Hardware setup/devboard: [Basic
+* Wiring](http://www.esp8266.com/wiki/doku.php?id=getting-started-with-the-esp8266)
 
 
 ### Platformio-specific commands:
