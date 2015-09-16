@@ -2,14 +2,14 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
- 
+
 const char* ssid = "******";
 const char* password = "******";
 MDNSResponder mdns;
 
 ESP8266WebServer server(80);
 
-const int led = 13;
+const int led = 2;
 
 void handleRoot() {
   digitalWrite(led, 1);
@@ -37,37 +37,39 @@ void handleNotFound(){
 void setup(void){
   pinMode(led, OUTPUT);
   digitalWrite(led, 0);
-  Serial.begin(115200);
+  Serial.begin(9600);
   WiFi.begin(ssid, password);
   Serial.println("");
+  Serial.println("Wifi temperature sensor v0.1");
 
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
+		// toggle LED
+		digitalWrite(led, !digitalRead(led));
   }
+
   Serial.println("");
   Serial.print("Connected to ");
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-  
+
   if (mdns.begin("esp8266", WiFi.localIP())) {
     Serial.println("MDNS responder started");
   }
-  
+
   server.on("/", handleRoot);
-  
   server.on("/inline", [](){
     server.send(200, "text/plain", "this works as well");
   });
 
   server.onNotFound(handleNotFound);
-  
   server.begin();
   Serial.println("HTTP server started");
 }
- 
+
 void loop(void){
   server.handleClient();
-} 
+}
