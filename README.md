@@ -18,6 +18,7 @@ there are more examples of commands of the stock firmware.
 
 ### Notes
 
+* [ESP8266 Dallas Onewire example](http://iot-playground.com/2-uncategorised/41-esp8266-ds18b20-temperature-sensor-arduino-ide)
 * ESP01 webserver example: https://github.com/platformio/platformio/blob/develop/examples/espressif/esp8266-webserver/src/HelloServer.ino
 * OneWire library: http://platformio.org/#!/lib/show/1/OneWire
 * Hardware setup/devboard: [Basic Wiring](http://www.esp8266.com/wiki/doku.php?id=getting-started-with-the-esp8266)
