@@ -5,7 +5,6 @@
 #include "../config.h"
 
 MDNSResponder mdns;
-
 ESP8266WebServer server(80);
 
 const int led = 2;
@@ -55,16 +54,22 @@ void setup(void){
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  if (mdns.begin("esp8266", WiFi.localIP())) {
-    Serial.println("MDNS responder started");
+  if (mdns.begin(hostname, WiFi.localIP())) {
+    Serial.print("MDNS responder started, using hostname ");
+		Serial.println(*hostname);
   }
 
   server.on("/", handleRoot);
-  server.on("/inline", [](){
-    server.send(200, "text/plain", "this works as well");
+  server.on("/off", [](){
+		digitalWrite(led, 1);
+    server.send(200, "text/plain", "LED off");
   });
-
+  server.on("/on", [](){
+		digitalWrite(led, 0);
+    server.send(200, "text/plain", "LED on");
+  });
   server.onNotFound(handleNotFound);
+
   server.begin();
   Serial.println("HTTP server started");
 }
