@@ -10,14 +10,39 @@ accessed using your web browser:
 
 ![Website of the sensor](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/webbrowser.png)
 
-But usually, I use OpenHAB to query the sensor via the JSON interface:
+You can also query the sensor via the JSON interface:
 
     $ curl http://roomsensor/temperature
     {"temperature": 23.50,"unit": "Celsius"}
 		$ curl http://roomsensor/humidity
     {"humidity": 53.00,"unit": "Percent"}
 
-This can easily be integrated in OpenHAB:
+This can easily be integrated in OpenHAB. You need the HTTP binding first. Then,
+create two items like this:
+
+    Number Room_Temperature "Temperatur [%.2f °C]" <temperature> (Climate) { http="<[http://192.168.1.160/temperature:300000:JS(ESP8266GetTemperature.js)]" }
+    Number Room_Humidity "Luftfeuchtigkeit [%.2f r.H.]" <humidity> (Climate) { http="<[http://192.168.1.160/humidity:300000:JS(ESP8266GetHumidity.js)]" }
+
+and two javascript transformation to parse the JSON: in ````transform/ESP8266GetTemperature.js````, put
+
+    JSON.parse(input).temperature;
+
+and in ````transform/ESP8266GetHumidity.js````, put
+
+    JSON.parse(input).humidity;
+
+I display these two values using these entries in my sitemap:
+
+    Text item=Room_Temperature icon="temperature"
+    Text item=Room_Humidity icon="water"
+
+Here you can see a screenshot of the OpenHAB classic interface using the 
+sensor values
+
+![OpenHAB classic UI](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/penthouse-ui.png)
+
+Since the values are just normal OpenHAB items you can store them, graph them
+and use them in your rules.
 
 ### The Hardware
 
