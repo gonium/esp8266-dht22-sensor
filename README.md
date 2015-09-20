@@ -52,11 +52,22 @@ depending where you buy. You also need a 3V3 DC 400mA power supply
 (another 3-4 Euros) and some resistors. All together this project should cost you 
 15 Euros.
 
+I soldered myself a simple programming breakout board similar to the one presented 
+[in the ESP8266 wiki getting started article](http://www.esp8266.com/wiki/doku.php?id=getting-started-with-the-esp8266).
+I added a connector to be able to use a breadboard for prototyping. This is how it looks
+like:
+
+TODO: Picture of prototype
+
+For the permanent deployment I use a much simpler setup - no need
+for a serial interface or programming buttons.
+
 TODO: Wiring of the hardware.
+
 
 ### Software
 
-First, you need to install platformio. Just follow the [Getting Started-Guide](http://platformio.org/#!/get-started)
+First, you need to install platformio. Just follow the [Getting Started-Guide](http://platformio.org/#!/get-started).
 Essentially, I did the following:
 
     # update dependent packages to the latest versions
@@ -68,19 +79,21 @@ Essentially, I did the following:
 Afterwards, clone the project (and the submodules in it):
 
     $ git clone --recursive git@github.com:gonium/esp8266-dht22-sensor.git
-		$ cd esp8266-dht22-sensor.git
+    $ cd esp8266-dht22-sensor.git
 
 Then, you have to copy the example of the config file and edit it to match 
 your network configuration:
 
     $ cp config_sample.h config.h
-		$ vim config.h
+    $ vim config.h
 
 In this file, please adjust SSID, password and the hostname you would like to 
 broadcast via MDNS.
 
 You can simply run the platformio toolchain now, it will download all 
-needed components/libraries, compile the code and upload it automatically:
+needed components/libraries, compile the code and upload it automatically (please 
+put the ESP8266 into bootloader mode - press PROG and RESET, then release RESET
+first):
 
     $ platformio run
 
@@ -95,6 +108,8 @@ On my system this is the output:
     Connected to nibbler
     IP address: 192.168.1.160
     MDNS responder started
+
+The sensor should now be accessible under ````http://192.168.1.160```` and ````http://roomsensor````.
 
 ### License
 
