@@ -1,0 +1,8 @@
+Reference, Value, Footprint, Datasheet
+ESP1,ESP-01,,
+DHT221,DHT22,,
+C1,100uF,,
+R1,10k,,
+R2,10k,,
+R3,10k,,
+P1,CONN_01X02,,
