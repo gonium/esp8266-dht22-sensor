@@ -60,10 +60,13 @@ like:
 TODO: Picture of prototype
 
 For the permanent deployment I use a much simpler setup - no need
-for a serial interface or programming buttons.
+for a serial interface or programming buttons. The schematic looks like
+this:
 
-TODO: Wiring of the hardware.
+![Sensorboard schematic](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/schematic.png)
 
+You can easily construct the circuit on some protoboard using THT
+components.
 
 ### Software
 
