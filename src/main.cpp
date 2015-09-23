@@ -1,32 +1,26 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
-#include <DHT.h>
+//#include <ESP8266mDNS.h>
 #include "../config.h"
-#define DHTTYPE DHT22
-#define DHTPIN  2
+#include <OneWire.h>
+//#include <DallasTemperature.h>
 
-MDNSResponder mdns;
+//MDNSResponder mdns;
 ESP8266WebServer server(80);
 
-// Initialize DHT sensor
-// NOTE: For working with a faster than ATmega328p 16 MHz Arduino chip, like an ESP8266,
-// you need to increase the threshold for cycle counts considered a 1 or 0.
-// You can do this by passing a 3rd parameter for this threshold.  It's a bit
-// of fiddling to find the right value, but in general the faster the CPU the
-// higher the value.  The default for a 16mhz AVR is a value of 6.  For an
-// Arduino Due that runs at 84mhz a value of 30 works.
-// This is for the ESP8266 processor on ESP-01
-DHT dht(DHTPIN, DHTTYPE, 11); // 11 works fine for ESP8266
+#define ONE_WIRE_BUS 2  // DS18S20 pin
+//OneWire oneWire(ONE_WIRE_BUS);
+//DallasTemperature DS18B20(&oneWire);
+OneWire ds(ONE_WIRE_BUS);
 
-float humidity, temp;  // Values read from sensor
+float temp;  // Values read from sensor
 String webString="";     // String to display
 // Generally, you should use "unsigned long" for variables that hold time
 unsigned long previousMillis = 0;        // will store last temp was read
 const long interval = 2000;              // interval at which to read sensor
 
-static void gettemperature() {
+void ICACHE_FLASH_ATTR gettemperature() {
   // Wait at least 2 seconds seconds between measurements.
   // if the difference between the current time and last time you read
   // the sensor is bigger than the interval you set, read the sensor
@@ -37,20 +31,111 @@ static void gettemperature() {
     // save the last time you read the sensor 
     previousMillis = currentMillis;
  
-    // Reading temperature for humidity takes about 250 milliseconds!
-    // Sensor readings may also be up to 2 seconds 'old' (it's a very slow sensor)
-    humidity = dht.readHumidity();          // Read humidity (percent)
-    temp = dht.readTemperature(false);     // Read temperature as Celsius
-    // Check if any reads failed and exit early (to try again).
-    if (isnan(humidity) || isnan(temp)) {
-      Serial.println("Failed to read from DHT sensor!");
+		do {
+			// see https://github.com/esp8266/Arduino/blob/esp8266/libraries/OneWire/examples/DS18x20_Temperature/DS18x20_Temperature.pde
+			byte i;
+			byte present = 0;
+			byte type_s;
+			byte data[12];
+			byte addr[8];
+			
+			if ( !ds.search(addr)) {
+				Serial.println("No more addresses.");
+				Serial.println();
+				ds.reset_search();
+				delay(250);
+				return;
+			}
+			
+			Serial.print("ROM =");
+			for( i = 0; i < 8; i++) {
+				Serial.write(' ');
+				Serial.print(addr[i], HEX);
+			}
+
+			if (OneWire::crc8(addr, 7) != addr[7]) {
+					Serial.println("CRC is not valid!");
+					return;
+			}
+			Serial.println();
+
+			// the first ROM byte indicates which chip
+			switch (addr[0]) {
+				case 0x10:
+					Serial.println("  Chip = DS18S20");  // or old DS1820
+					type_s = 1;
+					break;
+				case 0x28:
+					Serial.println("  Chip = DS18B20");
+					type_s = 0;
+					break;
+				case 0x22:
+					Serial.println("  Chip = DS1822");
+					type_s = 0;
+					break;
+				default:
+					Serial.println("Device is not a DS18x20 family device.");
+					return;
+			} 
+
+			ds.reset();
+			ds.select(addr);
+			ds.write(0x44, 0);        // start conversion
+			
+			delay(1000);     // maybe 750ms is enough, maybe not
+			// we might do a ds.depower() here, but the reset will take care of it.
+			
+			present = ds.reset();
+			ds.select(addr);
+			ds.write(0xBE);         // Read Scratchpad
+
+			Serial.print("  Data = ");
+			Serial.print(present, HEX);
+			Serial.print(" ");
+			for ( i = 0; i < 9; i++) {           // we need 9 bytes
+				data[i] = ds.read();
+				Serial.print(data[i], HEX);
+				Serial.print(" ");
+			}
+			Serial.print(" CRC=");
+			Serial.print(OneWire::crc8(data, 8), HEX);
+			Serial.println();
+
+			// Convert the data to actual temperature
+			// because the result is a 16 bit signed integer, it should
+			// be stored to an "int16_t" type, which is always 16 bits
+			// even when compiled on a 32 bit processor.
+			int16_t raw = (data[1] << 8) | data[0];
+			if (type_s) {
+				raw = raw << 3; // 9 bit resolution default
+				if (data[7] == 0x10) {
+					// "count remain" gives full 12 bit resolution
+					raw = (raw & 0xFFF0) + 12 - data[6];
+				}
+			} else {
+				byte cfg = (data[4] & 0x60);
+				// at lower res, the low bits are undefined, so let's zero them
+				if (cfg == 0x00) raw = raw & ~7;  // 9 bit resolution, 93.75 ms
+				else if (cfg == 0x20) raw = raw & ~3; // 10 bit res, 187.5 ms
+				else if (cfg == 0x40) raw = raw & ~1; // 11 bit res, 375 ms
+				//// default is 12 bit resolution, 750 ms conversion time
+			}
+			temp = (float)raw / 16.0;
+
+			Serial.print("Temperature: ");
+			Serial.println(temp);
+		} while (temp == 85.0 || temp == (-127.0));
+
+    if (isnan(temp)) {
+
+      Serial.println("Failed to read from sensor");
       return;
     }
   }
 }
 
 
-static void handleNotFound(){
+void ICACHE_FLASH_ATTR handleNotFound(){
   String message = "File Not Found\n\n";
   message += "URI: ";
   message += server.uri();
@@ -65,7 +150,7 @@ static void handleNotFound(){
   server.send(404, "text/plain", message);
 }
  
-void setup(void){
+void ICACHE_FLASH_ATTR setup(void){
   Serial.begin(9600);
   WiFi.begin(ssid, password);
   Serial.println("");
@@ -83,15 +168,14 @@ void setup(void){
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  if (mdns.begin(hostname, WiFi.localIP())) {
-    Serial.println("MDNS responder started");
-  }
+//  if (mdns.begin(hostname, WiFi.localIP())) {
+//    Serial.println("MDNS responder started");
+//  }
 
 	server.on("/", [](){  // if you add this subdirectory to your webserver call, you get text below :)
     gettemperature();       // read sensor
 		webString = "Sensor " + String(hostname) + " reports:\n";
     webString+="Temperature: "+String(temp)+" degree Celsius\n";
-    webString+="Humidity: "+String(humidity)+" Percent";
     server.send(200, "text/plain", webString);            // send to someones browser when asked
   });
 	server.on("/temperature", [](){  // if you add this subdirectory to your webserver call, you get text below :)
@@ -100,17 +184,12 @@ void setup(void){
     server.send(200, "text/plain", webString);            // send to someones browser when asked
   });
  
-  server.on("/humidity", [](){  // if you add this subdirectory to your webserver call, you get text below :)
-    gettemperature();           // read sensor
-    webString="{\"humidity\": "+String(humidity)+",\"unit\": \"Percent\"}";
-    server.send(200, "text/plain", webString);               // send to someones browser when asked
-  });
-	server.onNotFound(handleNotFound);
+  server.onNotFound(handleNotFound);
 
   server.begin();
 }
 
-void loop(void){
+void ICACHE_FLASH_ATTR loop(void){
   server.handleClient();
 }
 
