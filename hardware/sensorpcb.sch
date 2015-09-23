@@ -30,6 +30,7 @@ LIBS:contrib
 LIBS:valves
 LIBS:ESP8266
 LIBS:dht22
+LIBS:sensorpcb-cache
 EELAYER 25 0
 EELAYER END
 $Descr User 8661 4724
@@ -92,7 +93,7 @@ Text GLabel 2000 3300 0    60   UnSpc ~ 0
 3V3
 Text GLabel 2000 3700 0    60   UnSpc ~ 0
 GND
-Text GLabel 3100 1600 2    60   Input ~ 0
+Text GLabel 3100 1700 2    60   Input ~ 0
 DHT22-DATA
 Text GLabel 5100 2000 0    60   Output ~ 0
 DHT22-DATA
@@ -105,14 +106,12 @@ Wire Wire Line
 	5350 1850 5450 1850
 Wire Wire Line
 	5050 1850 4950 1850
-Text GLabel 2150 1200 1    60   UnSpc ~ 0
+Text GLabel 3100 1500 2    60   UnSpc ~ 0
 GND
-Text GLabel 2100 2200 3    60   UnSpc ~ 0
+Text GLabel 3100 2100 2    60   UnSpc ~ 0
 3V3
 Wire Wire Line
 	1600 1800 1600 2100
-Wire Wire Line
-	2650 1250 2650 1500
 $Comp
 L CP C1
 U 1 1 55FFECDB
@@ -129,23 +128,23 @@ NoConn ~ 1600 1500
 $Comp
 L R R1
 U 1 1 55FFEFC8
-P 1250 1450
-F 0 "R1" V 1330 1450 50  0000 C CNN
-F 1 "10k" V 1250 1450 50  0000 C CNN
-F 2 "" V 1180 1450 30  0000 C CNN
-F 3 "" H 1250 1450 30  0000 C CNN
-	1    1250 1450
+P 1250 1850
+F 0 "R1" V 1330 1850 50  0000 C CNN
+F 1 "10k" V 1250 1850 50  0000 C CNN
+F 2 "" V 1180 1850 30  0000 C CNN
+F 3 "" H 1250 1850 30  0000 C CNN
+	1    1250 1850
 	1    0    0    -1  
 $EndComp
 $Comp
 L R R2
 U 1 1 55FFF00F
-P 1450 1450
-F 0 "R2" V 1530 1450 50  0000 C CNN
-F 1 "10k" V 1450 1450 50  0000 C CNN
-F 2 "" V 1380 1450 30  0000 C CNN
-F 3 "" H 1450 1450 30  0000 C CNN
-	1    1450 1450
+P 1450 1850
+F 0 "R2" V 1530 1850 50  0000 C CNN
+F 1 "10k" V 1450 1850 50  0000 C CNN
+F 2 "" V 1380 1850 30  0000 C CNN
+F 3 "" H 1450 1850 30  0000 C CNN
+	1    1450 1850
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -160,35 +159,13 @@ F 3 "" H 2950 1850 30  0000 C CNN
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	1600 2100 2950 2100
-Wire Wire Line
-	2100 2100 2100 2200
-Connection ~ 2100 2100
-Wire Wire Line
-	2650 1600 3100 1600
+	1250 2100 3100 2100
 Wire Wire Line
 	2950 1700 2950 1600
-Connection ~ 2950 1600
 Wire Wire Line
 	5100 2000 5150 2000
 Wire Wire Line
 	5150 2000 5150 1850
-Wire Wire Line
-	1450 1600 1600 1600
-Wire Wire Line
-	1600 1700 1250 1700
-Wire Wire Line
-	1250 1700 1250 1600
-Wire Wire Line
-	1250 1300 1450 1300
-Wire Wire Line
-	1350 1300 1350 1250
-Wire Wire Line
-	1350 1250 2650 1250
-Wire Wire Line
-	2150 1250 2150 1200
-Connection ~ 1350 1300
-Connection ~ 2150 1250
 Wire Wire Line
 	2950 2100 2950 2000
 NoConn ~ 2650 1700
@@ -241,4 +218,24 @@ F 3 "" H 2550 3700 60  0000 C CNN
 $EndComp
 Connection ~ 2550 3300
 Connection ~ 2550 3700
+Wire Wire Line
+	1250 1700 1250 1600
+Wire Wire Line
+	1250 1600 1600 1600
+Wire Wire Line
+	1450 1700 1600 1700
+Wire Wire Line
+	1250 2000 1250 2100
+Connection ~ 1600 2100
+Wire Wire Line
+	1450 2000 1450 2100
+Connection ~ 1450 2100
+Connection ~ 2950 2100
+Wire Wire Line
+	2950 1600 2650 1600
+Wire Wire Line
+	2950 1700 3100 1700
+Connection ~ 2950 1700
+Wire Wire Line
+	2650 1500 3100 1500
 $EndSCHEMATC
