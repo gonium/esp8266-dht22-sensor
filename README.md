@@ -1,4 +1,4 @@
-### About
+## A wifi (ESP8266) temperature/humidity sensor for OpenHAB
 
 This project implements a simple and cheap room temperature/humidity sensor 
 based on the DHT22 and the ESP8266 ESP-01 board. 
