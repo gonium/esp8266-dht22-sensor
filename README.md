@@ -57,7 +57,12 @@ I soldered myself a simple programming breakout board similar to the one present
 I added a connector to be able to use a breadboard for prototyping. This is how it looks
 like:
 
-TODO: Picture of prototype
+![Sensorboard schematic](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/programming-jig.jpg)
+
+On the left you can see power coming in and the serial interface (3V3
+FTDI breakout board) used for progamming the device. The two pushbuttons
+allow me to reboot into programming mode. At the bottom there is a
+connector with cables connecting to a breadboard.
 
 For the permanent deployment I use a much simpler setup - no need
 for a serial interface or programming buttons. The schematic looks like
@@ -66,7 +71,13 @@ this:
 ![Sensorboard schematic](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/schematic.png)
 
 You can easily construct the circuit on some protoboard using THT
-components.
+components. Mine looks like this:
+
+![Final Sensor](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/final-sensor.jpg)
+
+The PCP is 5x5 cm big. If I find some time I will build an enclosure for
+it using my 3D printer. Since the enclosure needs to ensure a good
+ventilation stock enclosures don't work well.
 
 ### Software
 
