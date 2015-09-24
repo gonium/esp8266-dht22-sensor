@@ -3,17 +3,28 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 //#include <ESP8266mDNS.h>
-#include <OneWire.h>
-
-//MDNSResponder mdns;
-ESP8266WebServer server(80);
 
 #ifdef SENSOR_DS18S20
+#include <OneWire.h>
 #define ONE_WIRE_BUS 2  // DS18S20 pin
 OneWire ds(ONE_WIRE_BUS);
 #endif
 
-float temp;  // Values read from sensor
+#ifdef SENSOR_DHT22
+#include <DHT.h>
+#include "../config.h"
+#define DHTTYPE DHT22
+#define DHTPIN  2
+DHT dht(DHTPIN, DHTTYPE, 11); // 11 works fine for ESP8266
+#endif
+
+
+
+//MDNSResponder mdns;
+ESP8266WebServer server(80);
+
+
+float humidity, temp;  // Values read from sensor
 String webString="";     // String to display
 // Generally, you should use "unsigned long" for variables that hold time
 unsigned long previousMillis = 0;        // will store last temp was read
@@ -123,11 +134,17 @@ void ICACHE_FLASH_ATTR gettemperature() {
 				//// default is 12 bit resolution, 750 ms conversion time
 			}
 			temp = (float)raw / 16.0;
+			//Serial.print("Temperature: ");
+			//Serial.println(temp);
+		} while (temp == 85.0 || temp == (-127.0));
 #endif // of DS18S20-related code
 
-			Serial.print("Temperature: ");
-			Serial.println(temp);
-		} while (temp == 85.0 || temp == (-127.0));
+#ifdef SENSOR_DHT22 // Read temp&hum from DHT22
+		// Reading temperature for humidity takes about 250 milliseconds!
+		// Sensor readings may also be up to 2 seconds 'old' (it's a very slow sensor)
+		humidity = dht.readHumidity();          // Read humidity (percent)
+		temp = dht.readTemperature(false);     // Read temperature as Celsius
+#endif
 
     if (isnan(temp)) {
       Serial.println("Failed to read from sensor");
