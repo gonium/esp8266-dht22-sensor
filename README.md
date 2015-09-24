@@ -1,7 +1,8 @@
 ## A wifi (ESP8266) temperature/humidity sensor for OpenHAB
 
 This project implements a simple and cheap room temperature/humidity sensor 
-based on the DHT22 and the ESP8266 ESP-01 board. 
+based on the DHT22 and the ESP8266 ESP-01 board. If you only want to log temperatures
+you can also use the Dallas DS18S20 onewire temperature sensor.
 It uses [platformio](http://platformio.org) to manage the cross compiler and
 Arduino framework setup tasks. I wanted a rather cheap sensor that can be integrated
 into an [OpenHAB](http://openhab.org) home automation setup easily. The sensor
@@ -71,7 +72,8 @@ this:
 ![Sensorboard schematic](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/schematic.png)
 
 You can easily construct the circuit on some protoboard using THT
-components. Mine looks like this:
+components. Either you populate the DHT22, or you choose the simpler (and cheaper)
+temperature-only DS18S20 sensor. My DHT22 board looks like this:
 
 ![Final Sensor](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/final-sensor.jpg)
 
@@ -102,7 +104,8 @@ your network configuration:
     $ vim config.h
 
 In this file, please adjust SSID, password and the hostname you would like to 
-broadcast via MDNS.
+broadcast via MDNS. Depending on the sensor you populated you need to uncomment the 
+define line for your sensor.
 
 You can simply run the platformio toolchain now, it will download all 
 needed components/libraries, compile the code and upload it automatically (please 
