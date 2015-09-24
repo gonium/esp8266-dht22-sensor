@@ -30,6 +30,7 @@ LIBS:contrib
 LIBS:valves
 LIBS:ESP8266
 LIBS:dht22
+LIBS:ds18s20
 LIBS:sensorpcb-cache
 EELAYER 25 0
 EELAYER END
@@ -54,17 +55,6 @@ F 1 "ESP-01" H 2150 1350 60  0000 C CNN
 F 2 "" H 1950 1550 60  0000 C CNN
 F 3 "" H 1950 1550 60  0000 C CNN
 	1    2150 1650
-	1    0    0    -1  
-$EndComp
-$Comp
-L DHT22 DHT221
-U 1 1 55FFE91F
-P 5200 1500
-F 0 "DHT221" H 5200 1750 60  0000 C CNN
-F 1 "DHT22" H 5200 1650 60  0000 C CNN
-F 2 "" H 5200 1500 60  0000 C CNN
-F 3 "" H 5200 1500 60  0000 C CNN
-	1    5200 1500
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -93,27 +83,18 @@ Text GLabel 2000 3300 0    60   UnSpc ~ 0
 3V3
 Text GLabel 2000 3700 0    60   UnSpc ~ 0
 GND
-Text GLabel 3100 1600 2    60   Input ~ 0
-DHT22-DATA
-Text GLabel 5100 2000 0    60   Output ~ 0
-DHT22-DATA
-Text GLabel 4950 1850 0    60   UnSpc ~ 0
+Text GLabel 3100 1700 2    60   Input ~ 0
+SENSOR-DATA
+Text GLabel 5300 1100 2    60   Output ~ 0
+SENSOR-DATA
+Text GLabel 5300 1250 2    60   UnSpc ~ 0
 3V3
-Text GLabel 5450 1850 2    60   UnSpc ~ 0
+Text GLabel 5300 950  2    60   UnSpc ~ 0
 GND
-NoConn ~ 5250 1850
-Wire Wire Line
-	5350 1850 5450 1850
-Wire Wire Line
-	5050 1850 4950 1850
-Text GLabel 2650 1150 1    60   UnSpc ~ 0
+Text GLabel 3100 1500 2    60   UnSpc ~ 0
 GND
-Text GLabel 2100 2200 3    60   UnSpc ~ 0
+Text GLabel 3100 2100 2    60   UnSpc ~ 0
 3V3
-Wire Wire Line
-	1600 1800 1600 2100
-Wire Wire Line
-	2650 1150 2650 1500
 $Comp
 L CP C1
 U 1 1 55FFECDB
@@ -160,33 +141,7 @@ F 3 "" H 2950 1850 30  0000 C CNN
 	1    2950 1850
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	1250 2100 2950 2100
-Wire Wire Line
-	2100 2100 2100 2200
-Connection ~ 2100 2100
-Wire Wire Line
-	2650 1600 3100 1600
-Wire Wire Line
-	2950 1700 2950 1600
-Connection ~ 2950 1600
-Wire Wire Line
-	5100 2000 5150 2000
-Wire Wire Line
-	5150 2000 5150 1850
-Wire Wire Line
-	2950 2100 2950 2000
 NoConn ~ 2650 1700
-Wire Wire Line
-	2150 3650 2150 3750
-Wire Wire Line
-	2150 3250 2150 3350
-Wire Wire Line
-	2000 3300 2650 3300
-Connection ~ 2150 3300
-Wire Wire Line
-	2000 3700 2650 3700
-Connection ~ 2150 3700
 $Comp
 L CONN_01X02 P1
 U 1 1 55FFFB03
@@ -198,10 +153,6 @@ F 3 "" H 2850 3500 60  0000 C CNN
 	1    2850 3500
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	2650 3300 2650 3450
-Wire Wire Line
-	2650 3700 2650 3550
 $Comp
 L PWR_FLAG #FLG03
 U 1 1 55FFFDCE
@@ -224,6 +175,57 @@ F 3 "" H 2550 3700 60  0000 C CNN
 	1    2550 3700
 	-1   0    0    1   
 $EndComp
+NoConn ~ 5150 1050
+$Comp
+L DHT22 DHT221
+U 1 1 55FFE91F
+P 4800 1100
+F 0 "DHT221" H 4800 1350 60  0000 C CNN
+F 1 "DHT22" H 4800 1250 60  0000 C CNN
+F 2 "" H 4800 1100 60  0000 C CNN
+F 3 "" H 4800 1100 60  0000 C CNN
+	1    4800 1100
+	0    -1   -1   0   
+$EndComp
+$Comp
+L DS18S20 DS18S20-?
+U 1 1 5603DA29
+P 4800 1950
+F 0 "DS18S20-?" H 4800 2200 60  0000 C CNN
+F 1 "DS18S20" H 4800 2050 60  0000 C CNN
+F 2 "" H 4800 1950 60  0000 C CNN
+F 3 "" H 4800 1950 60  0000 C CNN
+	1    4800 1950
+	0    -1   -1   0   
+$EndComp
+Text GLabel 5300 1800 2    60   UnSpc ~ 0
+3V3
+Text GLabel 5300 2100 2    60   UnSpc ~ 0
+GND
+Text GLabel 5300 1950 2    60   Output ~ 0
+SENSOR-DATA
+Wire Wire Line
+	1600 2100 1600 1800
+Wire Wire Line
+	1250 2100 3100 2100
+Wire Wire Line
+	2950 1700 2950 1600
+Wire Wire Line
+	2950 2100 2950 2000
+Wire Wire Line
+	2150 3650 2150 3750
+Wire Wire Line
+	2150 3250 2150 3350
+Wire Wire Line
+	2000 3300 2650 3300
+Connection ~ 2150 3300
+Wire Wire Line
+	2000 3700 2650 3700
+Connection ~ 2150 3700
+Wire Wire Line
+	2650 3300 2650 3450
+Wire Wire Line
+	2650 3700 2650 3550
 Connection ~ 2550 3300
 Connection ~ 2550 3700
 Wire Wire Line
@@ -238,4 +240,36 @@ Connection ~ 1600 2100
 Wire Wire Line
 	1450 2000 1450 2100
 Connection ~ 1450 2100
+Connection ~ 2950 2100
+Wire Wire Line
+	2950 1600 2650 1600
+Wire Wire Line
+	2950 1700 3100 1700
+Connection ~ 2950 1700
+Wire Wire Line
+	2650 1500 3100 1500
+Wire Wire Line
+	5150 950  5300 950 
+Wire Wire Line
+	5150 1250 5300 1250
+Wire Wire Line
+	5200 1150 5200 1100
+Wire Wire Line
+	5200 1100 5300 1100
+Wire Wire Line
+	5200 1150 5150 1150
+Wire Wire Line
+	5150 1850 5200 1850
+Wire Wire Line
+	5200 1850 5200 1800
+Wire Wire Line
+	5200 1800 5300 1800
+Wire Wire Line
+	5150 2050 5200 2050
+Wire Wire Line
+	5200 2050 5200 2100
+Wire Wire Line
+	5200 2100 5300 2100
+Wire Wire Line
+	5150 1950 5300 1950
 $EndSCHEMATC

@@ -1,4 +1,4 @@
-update=2015 September 21, Monday 14:02:54
+update=2015 September 24, Thursday 12:56:15
 version=1
 last_client=kicad
 [pcbnew]
@@ -25,6 +25,16 @@ version=1
 NetIExt=net
 [general]
 version=1
+[schematic_editor]
+version=1
+PageLayoutDescrFile=
+PlotDirectoryName=/Users/md/Downloads/
+SubpartIdSeparator=0
+SubpartFirstId=65
+NetFmtName=
+SpiceForceRefPrefix=0
+SpiceUseNetNumbers=0
+LabSize=60
 [eeschema]
 version=1
 LibDir=../hardware
@@ -60,13 +70,4 @@ LibName28=contrib
 LibName29=valves
 LibName30=ESP8266
 LibName31=dht22
-[schematic_editor]
-version=1
-PageLayoutDescrFile=
-PlotDirectoryName=/Users/md/Downloads/
-SubpartIdSeparator=0
-SubpartFirstId=65
-NetFmtName=
-SpiceForceRefPrefix=0
-SpiceUseNetNumbers=0
-LabSize=60
+LibName32=ds18s20

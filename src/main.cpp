@@ -1,24 +1,23 @@
+#include "../config.h"
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 //#include <ESP8266mDNS.h>
-#include "../config.h"
 #include <OneWire.h>
-//#include <DallasTemperature.h>
 
 //MDNSResponder mdns;
 ESP8266WebServer server(80);
 
+#ifdef SENSOR_DS18S20
 #define ONE_WIRE_BUS 2  // DS18S20 pin
-//OneWire oneWire(ONE_WIRE_BUS);
-//DallasTemperature DS18B20(&oneWire);
 OneWire ds(ONE_WIRE_BUS);
+#endif
 
 float temp;  // Values read from sensor
 String webString="";     // String to display
 // Generally, you should use "unsigned long" for variables that hold time
 unsigned long previousMillis = 0;        // will store last temp was read
-const long interval = 2000;              // interval at which to read sensor
+const long interval = 2000;             // interval at which to read sensor
 
 void ICACHE_FLASH_ATTR gettemperature() {
   // Wait at least 2 seconds seconds between measurements.
@@ -30,7 +29,9 @@ void ICACHE_FLASH_ATTR gettemperature() {
   if(currentMillis - previousMillis >= interval) {
     // save the last time you read the sensor 
     previousMillis = currentMillis;
- 
+
+#ifdef SENSOR_DS18S20
+		// This is the code for receiving temperature readings from a DS18S20.
 		do {
 			// see https://github.com/esp8266/Arduino/blob/esp8266/libraries/OneWire/examples/DS18x20_Temperature/DS18x20_Temperature.pde
 			byte i;
@@ -39,6 +40,7 @@ void ICACHE_FLASH_ATTR gettemperature() {
 			byte data[12];
 			byte addr[8];
 			
+			ds.reset_search();
 			if ( !ds.search(addr)) {
 				Serial.println("No more addresses.");
 				Serial.println();
@@ -47,30 +49,30 @@ void ICACHE_FLASH_ATTR gettemperature() {
 				return;
 			}
 			
-			Serial.print("ROM =");
-			for( i = 0; i < 8; i++) {
-				Serial.write(' ');
-				Serial.print(addr[i], HEX);
-			}
+			//Serial.print("ROM =");
+			//for( i = 0; i < 8; i++) {
+			//	Serial.write(' ');
+			//	Serial.print(addr[i], HEX);
+			//}
 
 			if (OneWire::crc8(addr, 7) != addr[7]) {
 					Serial.println("CRC is not valid!");
 					return;
 			}
-			Serial.println();
+			//Serial.println();
 
 			// the first ROM byte indicates which chip
 			switch (addr[0]) {
 				case 0x10:
-					Serial.println("  Chip = DS18S20");  // or old DS1820
+					//Serial.println("  Chip = DS18S20");  // or old DS1820
 					type_s = 1;
 					break;
 				case 0x28:
-					Serial.println("  Chip = DS18B20");
+					//Serial.println("  Chip = DS18B20");
 					type_s = 0;
 					break;
 				case 0x22:
-					Serial.println("  Chip = DS1822");
+					//Serial.println("  Chip = DS1822");
 					type_s = 0;
 					break;
 				default:
@@ -80,26 +82,26 @@ void ICACHE_FLASH_ATTR gettemperature() {
 
 			ds.reset();
 			ds.select(addr);
-			ds.write(0x44, 0);        // start conversion
+			ds.write(0x44, 0);        // start conversion, no parasitic power
 			
-			delay(1000);     // maybe 750ms is enough, maybe not
+			delay(250);     // maybe 750ms is enough, maybe not
 			// we might do a ds.depower() here, but the reset will take care of it.
 			
 			present = ds.reset();
 			ds.select(addr);
 			ds.write(0xBE);         // Read Scratchpad
 
-			Serial.print("  Data = ");
-			Serial.print(present, HEX);
-			Serial.print(" ");
+			//Serial.print("  Data = ");
+			//Serial.print(present, HEX);
+			//Serial.print(" ");
 			for ( i = 0; i < 9; i++) {           // we need 9 bytes
 				data[i] = ds.read();
-				Serial.print(data[i], HEX);
-				Serial.print(" ");
+				//Serial.print(data[i], HEX);
+				//Serial.print(" ");
 			}
-			Serial.print(" CRC=");
-			Serial.print(OneWire::crc8(data, 8), HEX);
-			Serial.println();
+			//Serial.print(" CRC=");
+			//Serial.print(OneWire::crc8(data, 8), HEX);
+			//Serial.println();
 
 			// Convert the data to actual temperature
 			// because the result is a 16 bit signed integer, it should
@@ -121,13 +123,13 @@ void ICACHE_FLASH_ATTR gettemperature() {
 				//// default is 12 bit resolution, 750 ms conversion time
 			}
 			temp = (float)raw / 16.0;
+#endif // of DS18S20-related code
 
 			Serial.print("Temperature: ");
 			Serial.println(temp);
 		} while (temp == 85.0 || temp == (-127.0));
 
     if (isnan(temp)) {
-
       Serial.println("Failed to read from sensor");
       return;
     }
@@ -187,6 +189,7 @@ void ICACHE_FLASH_ATTR setup(void){
   server.onNotFound(handleNotFound);
 
   server.begin();
+	ESP.wdtEnable(5000);
 }
 
 void ICACHE_FLASH_ATTR loop(void){
