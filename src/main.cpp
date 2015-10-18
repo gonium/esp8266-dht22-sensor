@@ -3,6 +3,8 @@
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
+#include <runningaverage.h>
+
 
 #ifdef SENSOR_DS18S20
 #include <OneWire.h>
@@ -21,13 +23,12 @@ MDNSResponder mdns;
 ESP8266WebServer server(80);
 
 
-float humidity, temp;  // Values read from sensor
 String webString="";     // String to display
 // Generally, you should use "unsigned long" for variables that hold time
 unsigned long previousMillis = 0;        // will store last temp was read
 const long interval = 2000;             // interval at which to read sensor
 
-bool ICACHE_FLASH_ATTR gettemperature() {
+bool ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
   // Wait at least 2 seconds seconds between measurements.
   // if the difference between the current time and last time you read
   // the sensor is bigger than the interval you set, read the sensor
@@ -197,36 +198,41 @@ void ICACHE_FLASH_ATTR setup(void){
 	}
 
 	server.on("/", [](){
-			if (gettemperature()) {       // read sensor
-			webString = "Sensor " + String(hostname) + " reports:\n";
-			webString+="Temperature: "+String(temp)+" degree Celsius\n";
+			float temp = 0.0;
+			float humidity = 0.0;
+			if (gettemperature(temp, humidity)) {       // read sensor
+				webString = "Sensor " + String(hostname) + " reports:\n";
+				webString+="Temperature: "+String(temp)+" degree Celsius\n";
 #ifdef SENSOR_DHT22 // Read temp&hum from DHT22
-			webString+="Humidity: "+String(humidity)+" % r.H.\n";
+				webString+="Humidity: "+String(humidity)+" % r.H.\n";
 #endif
-			server.send(200, "text/plain", webString);            // send to someones browser when asked
+				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
-			webString="{\"error\": \"Cannot read data from sensor.\"";
-			server.send(503, "text/plain", webString);            // send to someones browser when asked
+				webString="{\"error\": \"Cannot read data from sensor.\"";
+				server.send(503, "text/plain", webString);            // send to someones browser when asked
 			}
 			});
 	server.on("/temperature", [](){
-			if (gettemperature()) {       // read sensor
-			webString="{\"temperature\": "+String(temp)+",\"unit\": \"Celsius\"}";
-			server.send(200, "text/plain", webString);            // send to someones browser when asked
+			float temp = 0.0;
+			float humidity = 0.0;
+			if (gettemperature(temp, humidity)) {       // read sensor
+				webString="{\"temperature\": "+String(temp)+",\"unit\": \"Celsius\"}";
+				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
-			webString="{\"error\": \"Cannot read data from sensor.\"";
-			server.send(503, "text/plain", webString);            // send to someones browser when asked
+				webString="{\"error\": \"Cannot read data from sensor.\"";
+				server.send(503, "text/plain", webString);            // send to someones browser when asked
 			}
 			});
 #ifdef SENSOR_DHT22 // Read humidity from DHT22
 	server.on("/humidity", [](){
-			if (gettemperature()) {       // read sensor
-			gettemperature();       // read sensor
-			webString="{\"humidity\": "+String(humidity)+",\"unit\": \"% r.H.\"}";
-			server.send(200, "text/plain", webString);            // send to someones browser when asked
+			float temp = 0.0;
+			float humidity = 0.0;
+			if (gettemperature(temp, humidity)) {       // read sensor
+				webString="{\"humidity\": "+String(humidity)+",\"unit\": \"% r.H.\"}";
+				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
-			webString="{\"error\": \"Cannot read data from sensor.\"";
-			server.send(503, "text/plain", webString);            // send to someones browser when asked
+				webString="{\"error\": \"Cannot read data from sensor.\"";
+				server.send(503, "text/plain", webString);            // send to someones browser when asked
 			}
 			});
 
