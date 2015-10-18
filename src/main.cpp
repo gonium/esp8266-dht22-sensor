@@ -21,14 +21,21 @@ DHT dht(DHTPIN, DHTTYPE, 11); // 11 works fine for ESP8266
 
 MDNSResponder mdns;
 ESP8266WebServer server(80);
-
+RunningAverage temp_aggregator(6);
+RunningAverage hum_aggregator(6);
+bool sensor_ok = false;
+enum SensorState {
+	MEASURED_OK,
+	MEASURED_FAILED,
+	TOO_EARLY
+};
 
 String webString="";     // String to display
 // Generally, you should use "unsigned long" for variables that hold time
 unsigned long previousMillis = 0;        // will store last temp was read
-const long interval = 2000;             // interval at which to read sensor
+const long interval = 10000;             // interval at which to read sensor
 
-bool ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
+int ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
   // Wait at least 2 seconds seconds between measurements.
   // if the difference between the current time and last time you read
   // the sensor is bigger than the interval you set, read the sensor
@@ -55,7 +62,7 @@ bool ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
 			Serial.println();
 			ds.reset_search();
 			delay(250);
-			return false;
+			return MEASURED_FAILED;
 		}
 
 		//Serial.print("ROM =");
@@ -66,7 +73,7 @@ bool ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
 
 		if (OneWire::crc8(addr, 7) != addr[7]) {
 			Serial.println("CRC is not valid!");
-			return false;
+			return MEASURED_FAILED;
 		}
 		//Serial.println();
 
@@ -86,7 +93,7 @@ bool ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
 				break;
 			default:
 				Serial.println("Device is not a DS18x20 family device.");
-				return false;
+				return MEASURED_FAILED;
 		} 
 
 		ds.reset();
@@ -152,10 +159,12 @@ bool ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
 			// will be repeated with the next query.
 			previousMillis=currentMillis-2000;
 			if (previousMillis < 0) previousMillis = 0;
-			return false;
+			return MEASURED_FAILED;
 		} else {
-			return true;
+			return MEASURED_OK;
 		}
+	} else {
+		return TOO_EARLY; // no measurement taken - time not elapsed
 	}
 }
 
@@ -198,13 +207,11 @@ void ICACHE_FLASH_ATTR setup(void){
 	}
 
 	server.on("/", [](){
-			float temp = 0.0;
-			float humidity = 0.0;
-			if (gettemperature(temp, humidity)) {       // read sensor
+			if (sensor_ok) {       // read sensor
 				webString = "Sensor " + String(hostname) + " reports:\n";
-				webString+="Temperature: "+String(temp)+" degree Celsius\n";
+				webString+="Temperature: "+String(temp_aggregator.getAverage())+" degree Celsius\n";
 #ifdef SENSOR_DHT22 // Read temp&hum from DHT22
-				webString+="Humidity: "+String(humidity)+" % r.H.\n";
+				webString+="Humidity: "+String(hum_aggregator.getAverage())+" % r.H.\n";
 #endif
 				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
@@ -213,10 +220,8 @@ void ICACHE_FLASH_ATTR setup(void){
 			}
 			});
 	server.on("/temperature", [](){
-			float temp = 0.0;
-			float humidity = 0.0;
-			if (gettemperature(temp, humidity)) {       // read sensor
-				webString="{\"temperature\": "+String(temp)+",\"unit\": \"Celsius\"}";
+			if (sensor_ok) {       // read sensor
+				webString="{\"temperature\": "+String(temp_aggregator.getAverage())+",\"unit\": \"Celsius\"}";
 				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
 				webString="{\"error\": \"Cannot read data from sensor.\"";
@@ -225,10 +230,8 @@ void ICACHE_FLASH_ATTR setup(void){
 			});
 #ifdef SENSOR_DHT22 // Read humidity from DHT22
 	server.on("/humidity", [](){
-			float temp = 0.0;
-			float humidity = 0.0;
-			if (gettemperature(temp, humidity)) {       // read sensor
-				webString="{\"humidity\": "+String(humidity)+",\"unit\": \"% r.H.\"}";
+			if (sensor_ok) {       // read sensor
+				webString="{\"humidity\": "+String(hum_aggregator.getAverage())+",\"unit\": \"% r.H.\"}";
 				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
 				webString="{\"error\": \"Cannot read data from sensor.\"";
@@ -247,5 +250,22 @@ void ICACHE_FLASH_ATTR setup(void){
 void ICACHE_FLASH_ATTR loop(void){
 	server.handleClient();
 	ESP.wdtFeed();
+	float temp = 0.0;
+	float humidity = 0.0;
+	switch (gettemperature(temp, humidity)) {
+		case MEASURED_OK:
+			sensor_ok = true;
+			Serial.println("Updating accumulator w/ new measurements");
+			temp_aggregator.addValue(temp);
+			hum_aggregator.addValue(humidity);
+			break;
+		case MEASURED_FAILED:
+			Serial.println("Measurement failed");
+			sensor_ok = false;
+			break;
+		case TOO_EARLY:
+			;;
+			break;
+	}
 }
 
