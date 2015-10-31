@@ -35,7 +35,9 @@ String webString="";     // String to display
 unsigned long previousMillis = 0;        // will store last temp was read
 const long interval = 10000;             // interval at which to read sensor
 
-int ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
+// read the sensor with the given bus index. Sets temperature in temp,
+// humidity in humidity. Returns the SensorState.
+int ICACHE_FLASH_ATTR read_sensors(byte bus_idx, float& temp, float& humidity) {
   // Wait at least 2 seconds seconds between measurements.
   // if the difference between the current time and last time you read
   // the sensor is bigger than the interval you set, read the sensor
@@ -53,32 +55,53 @@ int ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
 		byte present = 0;
 		byte type_s;
 		byte data[12];
-		byte addr[8];
+		byte max_addr = 4;
+		byte addr[max_addr][8]; // can hold four addresses of 8 byte each
+		byte addr_count = 0;
 
 		ds.reset();
 		ds.reset_search();
-		if ( !ds.search(addr)) {
-			Serial.println("No more addresses.");
-			Serial.println();
-			ds.reset_search();
-			delay(250);
+
+		for (addr_count = 0; addr_count < max_addr; ++addr_count) {
+			if ( !ds.search(addr[addr_count])) {
+				//Serial.println("No more addresses.");
+				ds.reset_search();
+				delay(250);
+				break;
+			} //else {
+				//Serial.print("found address ");
+				//for( i = 0; i < 8; i++) {
+				//	Serial.write(' ');
+				//	Serial.print(addr[addr_count][i], HEX);
+				//}
+				//Serial.println();
+			//}
+		}
+
+		//Serial.print("found ");
+		//Serial.print(addr_count);
+		//Serial.println(" addresses.");
+
+		if (addr_count == 0) {
+			Serial.println("No sensors found.");
 			return MEASURED_FAILED;
 		}
 
-		//Serial.print("ROM =");
-		//for( i = 0; i < 8; i++) {
-		//	Serial.write(' ');
-		//	Serial.print(addr[i], HEX);
-		//}
+		if (bus_idx >= addr_count) {
+			Serial.print("Requested sensor ");
+			Serial.print(bus_idx);
+			Serial.println(" but not that many sensors on bus.");
+			return MEASURED_FAILED;
+		}
 
-		if (OneWire::crc8(addr, 7) != addr[7]) {
+		if (OneWire::crc8(addr[bus_idx], 7) != addr[bus_idx][7]) {
 			Serial.println("CRC is not valid!");
 			return MEASURED_FAILED;
 		}
 		//Serial.println();
 
 		// the first ROM byte indicates which chip
-		switch (addr[0]) {
+		switch (addr[bus_idx][0]) {
 			case 0x10:
 				//Serial.println("  Chip = DS18S20");  // or old DS1820
 				type_s = 1;
@@ -97,14 +120,15 @@ int ICACHE_FLASH_ATTR gettemperature(float& temp, float& humidity) {
 		} 
 
 		ds.reset();
-		ds.select(addr);
+		ds.select(addr[bus_idx]);
+
 		ds.write(0x44, 0);        // start conversion, no parasitic power
 
 		delay(750);     // maybe 750ms is enough, maybe not
 		// we might do a ds.depower() here, but the reset will take care of it.
 
 		present = ds.reset();
-		ds.select(addr);
+		ds.select(addr[bus_idx]);
 		ds.write(0xBE);         // Read Scratchpad
 
 		//Serial.print("  Data = ");
@@ -202,13 +226,13 @@ void ICACHE_FLASH_ATTR setup(void){
 	Serial.print("IP address: ");
 	Serial.println(WiFi.localIP());
 
-	if (mdns.begin(hostname, WiFi.localIP())) {
+	if (mdns.begin(mdnsname, WiFi.localIP())) {
 		Serial.println("MDNS responder started");
 	}
 
 	server.on("/", [](){
 			if (sensor_ok) {       // read sensor
-				webString = "Sensor " + String(hostname) + " reports:\n";
+				webString = "Sensor " + String(mdnsname) + " reports:\n";
 				webString+="Temperature: "+String(temp_aggregator.getAverage())+" degree Celsius\n";
 #ifdef SENSOR_DHT22 // Read temp&hum from DHT22
 				webString+="Humidity: "+String(hum_aggregator.getAverage())+" % r.H.\n";
@@ -252,10 +276,10 @@ void ICACHE_FLASH_ATTR loop(void){
 	ESP.wdtFeed();
 	float temp = 0.0;
 	float humidity = 0.0;
-	switch (gettemperature(temp, humidity)) {
+	switch (read_sensors(0, temp, humidity)) {
 		case MEASURED_OK:
 			sensor_ok = true;
-			Serial.println("Updating accumulator w/ new measurements");
+			//Serial.println("Updating accumulator w/ new measurements");
 			temp_aggregator.addValue(temp);
 			hum_aggregator.addValue(humidity);
 			break;
