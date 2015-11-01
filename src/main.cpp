@@ -4,6 +4,7 @@
 #include <ESP8266WebServer.h>
 #include <ESP8266mDNS.h>
 #include <runningaverage.h>
+#include <array>
 
 
 #ifdef SENSOR_DS18S20
@@ -21,9 +22,13 @@ DHT dht(DHTPIN, DHTTYPE, 11); // 11 works fine for ESP8266
 
 MDNSResponder mdns;
 ESP8266WebServer server(80);
-RunningAverage temp_aggregator(6);
-RunningAverage hum_aggregator(6);
-bool sensor_ok = false;
+// TODO: std::array nutzen
+std::array<RunningAverage*, MAX_NUM_SENSORS> temp_aggregators;
+std::array<RunningAverage*, MAX_NUM_SENSORS> hum_aggregators;
+std::array<bool, MAX_NUM_SENSORS> sensors_ok;
+//RunningAverage temp_aggregator(6);
+//RunningAverage hum_aggregator(6);
+//bool sensor_ok = false;
 enum SensorState {
 	MEASURED_OK,
 	MEASURED_FAILED,
@@ -55,14 +60,13 @@ int ICACHE_FLASH_ATTR read_sensors(byte bus_idx, float& temp, float& humidity) {
 		byte present = 0;
 		byte type_s;
 		byte data[12];
-		byte max_addr = 4;
-		byte addr[max_addr][8]; // can hold four addresses of 8 byte each
+		byte addr[MAX_NUM_SENSORS][8]; // can hold four addresses of 8 byte each
 		byte addr_count = 0;
 
 		ds.reset();
 		ds.reset_search();
 
-		for (addr_count = 0; addr_count < max_addr; ++addr_count) {
+		for (addr_count = 0; addr_count < MAX_NUM_SENSORS; ++addr_count) {
 			if ( !ds.search(addr[addr_count])) {
 				//Serial.println("No more addresses.");
 				ds.reset_search();
@@ -209,6 +213,14 @@ void ICACHE_FLASH_ATTR handleNotFound(){
 }
 
 void ICACHE_FLASH_ATTR setup(void){
+	// TODO: Create cache collection
+	for(byte i=0; i < MAX_NUM_SENSORS; ++i) {
+		temp_aggregators[i] = new RunningAverage(6);
+		hum_aggregators[i] = new RunningAverage(6);
+		sensors_ok[i] = false;
+	}
+
+
 	Serial.begin(9600);
 	WiFi.begin(ssid, password);
 	Serial.println("");
@@ -231,11 +243,11 @@ void ICACHE_FLASH_ATTR setup(void){
 	}
 
 	server.on("/", [](){
-			if (sensor_ok) {       // read sensor
+			if (sensors_ok[0]) {       // read sensor
 				webString = "Sensor " + String(mdnsname) + " reports:\n";
-				webString+="Temperature: "+String(temp_aggregator.getAverage())+" degree Celsius\n";
+				webString+="Temperature: "+String(temp_aggregators[0]->getAverage())+" degree Celsius\n";
 #ifdef SENSOR_DHT22 // Read temp&hum from DHT22
-				webString+="Humidity: "+String(hum_aggregator.getAverage())+" % r.H.\n";
+				webString+="Humidity: "+String(hum_aggregators[0]->getAverage())+" % r.H.\n";
 #endif
 				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
@@ -244,8 +256,8 @@ void ICACHE_FLASH_ATTR setup(void){
 			}
 			});
 	server.on("/temperature", [](){
-			if (sensor_ok) {       // read sensor
-				webString="{\"temperature\": "+String(temp_aggregator.getAverage())+",\"unit\": \"Celsius\"}";
+			if (sensors_ok[0]) {       // read sensor
+				webString="{\"temperature\": "+String(temp_aggregators[0]->getAverage())+",\"unit\": \"Celsius\"}";
 				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
 				webString="{\"error\": \"Cannot read data from sensor.\"";
@@ -254,8 +266,8 @@ void ICACHE_FLASH_ATTR setup(void){
 			});
 #ifdef SENSOR_DHT22 // Read humidity from DHT22
 	server.on("/humidity", [](){
-			if (sensor_ok) {       // read sensor
-				webString="{\"humidity\": "+String(hum_aggregator.getAverage())+",\"unit\": \"% r.H.\"}";
+			if (sensors_ok[0]) {       // read sensor
+				webString="{\"humidity\": "+String(hum_aggregators[0]->getAverage())+",\"unit\": \"% r.H.\"}";
 				server.send(200, "text/plain", webString);            // send to someones browser when asked
 			} else {
 				webString="{\"error\": \"Cannot read data from sensor.\"";
@@ -278,14 +290,16 @@ void ICACHE_FLASH_ATTR loop(void){
 	float humidity = 0.0;
 	switch (read_sensors(0, temp, humidity)) {
 		case MEASURED_OK:
-			sensor_ok = true;
-			//Serial.println("Updating accumulator w/ new measurements");
-			temp_aggregator.addValue(temp);
-			hum_aggregator.addValue(humidity);
+			sensors_ok[0] = true;
+			Serial.println("Updating accumulator w/ new measurements");
+			Serial.print("Temperature: ");
+			Serial.println(temp);
+			temp_aggregators[0]->addValue(temp);
+			hum_aggregators[0]->addValue(humidity);
 			break;
 		case MEASURED_FAILED:
 			Serial.println("Measurement failed");
-			sensor_ok = false;
+			sensors_ok[0] = false;
 			break;
 		case TOO_EARLY:
 			;;

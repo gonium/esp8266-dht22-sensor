@@ -9,6 +9,7 @@
 #define DHTTYPE DHT11
 // Option 2: you have an DS18S20 temperature sensor
 //#define SENSOR_DS18S20 1
+#define MAX_NUM_SENSORS 4
 
 const char* ssid = "****";
 const char* password = "****";
