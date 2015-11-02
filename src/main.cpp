@@ -37,7 +37,7 @@ enum SensorState {
 
 String webString="";     // String to display
 // Generally, you should use "unsigned long" for variables that hold time
-unsigned long previousMillis = 0;        // will store last temp was read
+std::array<unsigned long, MAX_NUM_SENSORS> previousMillis;        // will store last temp was read
 const long interval = 10000;             // interval at which to read sensor
 
 // read the sensor with the given bus index. Sets temperature in temp,
@@ -49,9 +49,9 @@ int ICACHE_FLASH_ATTR read_sensors(byte bus_idx, float& temp, float& humidity) {
   // Works better than delay for things happening elsewhere also
   unsigned long currentMillis = millis();
  
-  if(currentMillis - previousMillis >= interval) {
+  if(currentMillis - previousMillis[bus_idx] >= interval) {
     // save the last time you read the sensor 
-    previousMillis = currentMillis;
+    previousMillis[bus_idx] = currentMillis;
 
 #ifdef SENSOR_DS18S20
 		// This is the code for receiving temperature readings from a DS18S20.
@@ -185,8 +185,8 @@ int ICACHE_FLASH_ATTR read_sensors(byte bus_idx, float& temp, float& humidity) {
 			Serial.println("Failed to read from sensor");
 			// resetting the previous measurement time so that a failed attempt
 			// will be repeated with the next query.
-			previousMillis=currentMillis-2000;
-			if (previousMillis < 0) previousMillis = 0;
+			previousMillis[bus_idx]=currentMillis-2000;
+			if (previousMillis[bus_idx] < 0) previousMillis[bus_idx] = 0;
 			return MEASURED_FAILED;
 		} else {
 			return MEASURED_OK;
@@ -243,18 +243,23 @@ void ICACHE_FLASH_ATTR setup(void){
 	}
 
 	server.on("/", [](){
-			if (sensors_ok[0]) {       // read sensor
-				webString = "Sensor " + String(mdnsname) + " reports:\n";
-				webString+="Temperature: "+String(temp_aggregators[0]->getAverage())+" degree Celsius\n";
+			webString = "Measurements of device " + String(mdnsname) + "\n";
+			for (byte sensor_idx = 0; sensor_idx < MAX_NUM_SENSORS; ++sensor_idx) {
+				if (sensors_ok[sensor_idx]) {       // read sensor
+					webString+="Sensor "+String(sensor_idx)+" temperature: "+String(temp_aggregators[sensor_idx]->getAverage())+" degree Celsius\n";
 #ifdef SENSOR_DHT22 // Read temp&hum from DHT22
-				webString+="Humidity: "+String(hum_aggregators[0]->getAverage())+" % r.H.\n";
+					webString+="Sensor "+String(sensor_idx)+" humidity: "+String(hum_aggregators[sensor_idx]->getAverage())+" % r.H.\n";
 #endif
-				server.send(200, "text/plain", webString);            // send to someones browser when asked
-			} else {
-				webString="{\"error\": \"Cannot read data from sensor.\"";
-				server.send(503, "text/plain", webString);            // send to someones browser when asked
+				} else {
+					webString+="Sensor "+String(sensor_idx)+": Cannot read data from sensor \n";
+				}
 			}
-			});
+			server.send(200, "text/plain", webString);
+		});
+	// TODO: Append the index of the sensor to read to the URI. So /temperature/1
+	// would attempt to return the value of the second temperature sensor.
+	// Use server.uri and http://arduino.stackexchange.com/a/1033 to
+	// get the 1.
 	server.on("/temperature", [](){
 			if (sensors_ok[0]) {       // read sensor
 				webString="{\"temperature\": "+String(temp_aggregators[0]->getAverage())+",\"unit\": \"Celsius\"}";
@@ -286,24 +291,28 @@ void ICACHE_FLASH_ATTR setup(void){
 void ICACHE_FLASH_ATTR loop(void){
 	server.handleClient();
 	ESP.wdtFeed();
-	float temp = 0.0;
-	float humidity = 0.0;
-	switch (read_sensors(0, temp, humidity)) {
-		case MEASURED_OK:
-			sensors_ok[0] = true;
-			Serial.println("Updating accumulator w/ new measurements");
-			Serial.print("Temperature: ");
-			Serial.println(temp);
-			temp_aggregators[0]->addValue(temp);
-			hum_aggregators[0]->addValue(humidity);
-			break;
-		case MEASURED_FAILED:
-			Serial.println("Measurement failed");
-			sensors_ok[0] = false;
-			break;
-		case TOO_EARLY:
-			;;
-			break;
+	for (byte sensor_idx = 0; sensor_idx < MAX_NUM_SENSORS; ++sensor_idx) {
+		float temp = 0.0;
+		float humidity = 0.0;
+		switch (read_sensors(sensor_idx, temp, humidity)) {
+			case MEASURED_OK:
+				sensors_ok[sensor_idx] = true;
+				Serial.println("Updating accumulator w/ new measurements");
+				Serial.print("Sensor: ");
+				Serial.print(sensor_idx);
+				Serial.print(" temperature: ");
+				Serial.println(temp);
+				temp_aggregators[sensor_idx]->addValue(temp);
+				hum_aggregators[sensor_idx]->addValue(humidity);
+				break;
+			case MEASURED_FAILED:
+				Serial.println("Measurement failed");
+				sensors_ok[sensor_idx] = false;
+				break;
+			case TOO_EARLY:
+				;;
+				break;
+		}
 	}
 }
 
