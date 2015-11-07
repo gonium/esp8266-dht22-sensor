@@ -256,27 +256,29 @@ void ICACHE_FLASH_ATTR setup(void){
 			}
 			server.send(200, "text/plain", webString);
 		});
-	// TODO: Append the index of the sensor to read to the URI. So /temperature/1
+	// Append the index of the sensor to read to the URI. So /temperature/1
 	// would attempt to return the value of the second temperature sensor.
-	// Use server.uri and http://arduino.stackexchange.com/a/1033 to
-	// get the 1.
-	server.on("/temperature", [](){
-			if (sensors_ok[0]) {       // read sensor
-				webString="{\"temperature\": "+String(temp_aggregators[0]->getAverage())+",\"unit\": \"Celsius\"}";
-				server.send(200, "text/plain", webString);            // send to someones browser when asked
-			} else {
-				webString="{\"error\": \"Cannot read data from sensor.\"";
-				server.send(503, "text/plain", webString);            // send to someones browser when asked
-			}
+	for (byte sensor_idx = 0; sensor_idx < MAX_NUM_SENSORS; ++sensor_idx) {
+		String url("/temperature/" + String(sensor_idx));
+		server.on(url.c_str(), [sensor_idx](){
+				if (sensors_ok[sensor_idx]) {       // read sensor
+					webString="{\"temperature\": "+String(temp_aggregators[sensor_idx]->getAverage())+",\"unit\": \"Celsius\"}";
+					server.send(200, "text/plain", webString);
+				} else {
+					webString="{\"error\": \"Cannot read data from sensor "+String(sensor_idx)+".\"}";
+					server.send(503, "text/plain", webString);
+				}
 			});
+		Serial.println("Registered handler for "+url);
+	}
 #ifdef SENSOR_DHT22 // Read humidity from DHT22
 	server.on("/humidity", [](){
 			if (sensors_ok[0]) {       // read sensor
 				webString="{\"humidity\": "+String(hum_aggregators[0]->getAverage())+",\"unit\": \"% r.H.\"}";
-				server.send(200, "text/plain", webString);            // send to someones browser when asked
+				server.send(200, "text/plain", webString);
 			} else {
-				webString="{\"error\": \"Cannot read data from sensor.\"";
-				server.send(503, "text/plain", webString);            // send to someones browser when asked
+				webString="{\"error\": \"Cannot read data from sensor.\"}";
+				server.send(503, "text/plain", webString);
 			}
 			});
 
@@ -297,11 +299,11 @@ void ICACHE_FLASH_ATTR loop(void){
 		switch (read_sensors(sensor_idx, temp, humidity)) {
 			case MEASURED_OK:
 				sensors_ok[sensor_idx] = true;
-				Serial.println("Updating accumulator w/ new measurements");
-				Serial.print("Sensor: ");
-				Serial.print(sensor_idx);
-				Serial.print(" temperature: ");
-				Serial.println(temp);
+//				Serial.println("Updating accumulator w/ new measurements");
+//				Serial.print("Sensor: ");
+//				Serial.print(sensor_idx);
+//				Serial.print(" temperature: ");
+//				Serial.println(temp);
 				temp_aggregators[sensor_idx]->addValue(temp);
 				hum_aggregators[sensor_idx]->addValue(humidity);
 				break;
