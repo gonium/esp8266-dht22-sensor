@@ -271,6 +271,12 @@ void ICACHE_FLASH_ATTR setup(void){
 			});
 		Serial.println("Registered handler for "+url);
 	}
+	// add a default redirect: /temperature should redirect to /temperature/0
+	server.on("/temperature", []() {
+				webString = "Redirecting to /temperature/0";
+				server.sendHeader("Location", "/temperature/0");
+				server.send(301, "text/plain", webString);
+			});
 #ifdef SENSOR_DHT22 // Read humidity from DHT22
 	server.on("/humidity", [](){
 			if (sensors_ok[0]) {       // read sensor
