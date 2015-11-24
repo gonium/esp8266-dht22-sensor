@@ -13,7 +13,7 @@ accessed using your web browser:
 
 You can also query the sensor via the JSON interface:
 
-    $ curl http://roomsensor/temperature
+    $ curl http://roomsensor/temperature/0
     {"temperature": 23.50,"unit": "Celsius"}
 		$ curl http://roomsensor/humidity
     {"humidity": 53.00,"unit": "Percent"}
@@ -21,7 +21,7 @@ You can also query the sensor via the JSON interface:
 This can easily be integrated in OpenHAB. You need the HTTP binding first. Then,
 create two items like this:
 
-    Number Room_Temperature "Temperatur [%.2f °C]" <temperature> (Climate) { http="<[http://192.168.1.160/temperature:300000:JS(ESP8266GetTemperature.js)]" }
+    Number Room_Temperature "Temperatur [%.2f °C]" <temperature> (Climate) { http="<[http://192.168.1.160/temperature/0:300000:JS(ESP8266GetTemperature.js)]" }
     Number Room_Humidity "Luftfeuchtigkeit [%.2f r.H.]" <humidity> (Climate) { http="<[http://192.168.1.160/humidity:300000:JS(ESP8266GetHumidity.js)]" }
 
 and two javascript transformation to parse the JSON: in ````transform/ESP8266GetTemperature.js````, put
@@ -47,16 +47,18 @@ and use them in your rules.
 
 ### The Hardware
 
-The ESP-01 board is the simplest ESP8266 board you can buy - I paid around 3,30 
-Euros (including shipping!) per board. The DHT22 costs between 4 and 6 Euros, 
-depending where you buy. You also need a 3V3 DC 400mA power supply 
-(another 3-4 Euros) and some resistors. All together this project should cost you 
-15 Euros.
+You can use the ESP-01 or the ESP-WROOM-02 boards - both are tested and
+work fine. The ESP-01 board is the simplest ESP8266 board you can buy -
+I paid around 3,30 Euros (including shipping!) per board. The DHT22
+costs between 4 and 6 Euros, depending where you buy. You also need a
+3V3 DC 400mA power supply (another 3-4 Euros) and some resistors. All
+together this project should cost you 15 Euros.
 
-I soldered myself a simple programming breakout board similar to the one presented 
-[in the ESP8266 wiki getting started article](http://www.esp8266.com/wiki/doku.php?id=getting-started-with-the-esp8266).
-I added a connector to be able to use a breadboard for prototyping. This is how it looks
-like:
+I soldered myself a simple programming breakout board (for the ESP-01)
+similar to the one presented [in the ESP8266 wiki getting started
+article](http://www.esp8266.com/wiki/doku.php?id=getting-started-with-the-esp8266).
+I added a connector to be able to use a breadboard for prototyping.
+This is how it looks like:
 
 ![Sensorboard schematic](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/programming-jig.jpg)
 
@@ -72,14 +74,23 @@ this:
 ![Sensorboard schematic](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/schematic.png)
 
 You can easily construct the circuit on some protoboard using THT
-components. Either you populate the DHT22, or you choose the simpler (and cheaper)
-temperature-only DS18S20 sensor. My DHT22 board looks like this:
+components. You can either use the ESP-01 board or the ESP-WROOM-02,
+they behave the same in this simple application. Either you populate
+the DHT22, or you choose one or more of the simpler (and cheaper) temperature-only
+DS18S20 sensors. My ESP-01/DHT22 board looks like this:
 
 ![Final Sensor](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/final-sensor.jpg)
 
 The PCP is 5x5 cm big. If I find some time I will build an enclosure for
 it using my 3D printer. Since the enclosure needs to ensure a good
-ventilation stock enclosures don't work well.
+ventilation stock enclosures don't work well. For monitoring my heating
+system I'm using a ESP-WROOM-02/DS18S20 setup:
+
+![Final Sensor](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/multids18s20.jpg)
+
+The three grey lever connectors offer VCC, GND and the Onewire data
+line. I plugged a DS18S20 in a TO-92 enclosure directly into one of the
+connectors, and two enclosed sensors into the others.
 
 ### Software
 
@@ -105,7 +116,11 @@ your network configuration:
 
 In this file, please adjust SSID, password and the hostname you would like to 
 broadcast via MDNS. Depending on the sensor you populated you need to uncomment the 
-define line for your sensor.
+define line for your sensor. You also need to define how many
+temperature sensors you have attached. The sensors are enumerated and
+the first sensor will be represented via the ``/temperature/0`` url, the
+second can be queried via ``/temperature/1`` and so on. If you query
+``/temperature`` you will be mapped on the first sensor.
 
 You can simply run the platformio toolchain now, it will download all 
 needed components/libraries, compile the code and upload it automatically (please 
@@ -135,18 +150,7 @@ The project is available under the terms of the MIT license. It uses
    environment that is bundled
  * [Adafruits DHT22-Library](https://github.com/adafruit/DHT-sensor-library)
 
-
-### Notes
-
-* [ESP8266 Dallas Onewire example](http://iot-playground.com/2-uncategorised/41-esp8266-ds18b20-temperature-sensor-arduino-ide)
-* ESP01 webserver example: https://github.com/platformio/platformio/blob/develop/examples/espressif/esp8266-webserver/src/HelloServer.ino
-* OneWire library: http://platformio.org/#!/lib/show/1/OneWire
-* Hardware setup/devboard: [Basic Wiring](http://www.esp8266.com/wiki/doku.php?id=getting-started-with-the-esp8266)
-* [Initial Bootstrapping](http://williamdurand.fr/2015/03/17/playing-with-a-esp8266-wifi-module/)
-
-
-
-### Platformio-specific commands:
+### Note: Platformio-specific commands
 
 Useful commands:
 `platformio run` - process/build project from the current directory
