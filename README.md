@@ -86,7 +86,7 @@ it using my 3D printer. Since the enclosure needs to ensure a good
 ventilation stock enclosures don't work well. For monitoring my heating
 system I'm using a ESP-WROOM-02/DS18S20 setup:
 
-![Final Sensor](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/multids18s20.jpg)
+![Multiple DS18S20 sensors](https://raw.githubusercontent.com/gonium/esp8266-dht22-sensor/master/images/multids18s20.jpg)
 
 The three grey lever connectors offer VCC, GND and the Onewire data
 line. I plugged a DS18S20 in a TO-92 enclosure directly into one of the
