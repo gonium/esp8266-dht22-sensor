@@ -5,7 +5,8 @@
 #include <ESP8266mDNS.h>
 #include <runningaverage.h>
 #include <array>
-
+#include "sensor.hpp"
+#include "ds18s20.hpp"
 
 #ifdef SENSOR_DS18S20
 #include <OneWire.h>
@@ -15,35 +16,25 @@ OneWire ds(ONE_WIRE_BUS);
 
 #ifdef SENSOR_DHT22
 #include <DHT.h>
-#include "../config.h"
 #define DHTPIN  2
 DHT dht(DHTPIN, DHTTYPE, 11); // 11 works fine for ESP8266
 #endif
 
 MDNSResponder mdns;
 ESP8266WebServer server(80);
-// TODO: std::array nutzen
 std::array<RunningAverage*, MAX_NUM_SENSORS> temp_aggregators;
 std::array<RunningAverage*, MAX_NUM_SENSORS> hum_aggregators;
 std::array<bool, MAX_NUM_SENSORS> sensors_ok;
-//RunningAverage temp_aggregator(6);
-//RunningAverage hum_aggregator(6);
-//bool sensor_ok = false;
-enum SensorState {
-	MEASURED_OK,
-	MEASURED_FAILED,
-	TOO_EARLY
-};
+
 
 String webString="";     // String to display
-// Generally, you should use "unsigned long" for variables that hold time
 std::array<unsigned long, MAX_NUM_SENSORS> previousMillis;        // will store last temp was read
 const long interval = 10000;             // interval at which to read sensor
 
 // read the sensor with the given bus index. Sets temperature in temp,
 // humidity in humidity. Returns the SensorState.
 int ICACHE_FLASH_ATTR read_sensors(byte bus_idx, float& temp, float& humidity) {
-  // Wait at least 2 seconds seconds between measurements.
+  // Wait at least interval milliseconds seconds between measurements.
   // if the difference between the current time and last time you read
   // the sensor is bigger than the interval you set, read the sensor
   // Works better than delay for things happening elsewhere also
@@ -213,7 +204,7 @@ void ICACHE_FLASH_ATTR handleNotFound(){
 }
 
 void ICACHE_FLASH_ATTR setup(void){
-	// TODO: Create cache collection
+	// TODO: move
 	for(byte i=0; i < MAX_NUM_SENSORS; ++i) {
 		temp_aggregators[i] = new RunningAverage(6);
 		hum_aggregators[i] = new RunningAverage(6);
@@ -281,13 +272,36 @@ void ICACHE_FLASH_ATTR setup(void){
 				server.send(503, "text/plain", webString);
 			}
 			});
-
 #endif
 
 	server.onNotFound(handleNotFound);
 
 	server.begin();
 	ESP.wdtEnable(5000);
+
+
+	DS18S20Sensor ds18s20(interval, 0);
+	Serial.println("Testing DS18S20");
+	uint8_t state;
+	state = ds18s20.init();
+	bool oneshot = false;
+	while (!oneshot) {
+	switch (ds18s20.read()) {
+			case MEASURED_OK:
+				oneshot = true;
+				float ds_temp;
+				state = ds18s20.get(ds_temp);
+				Serial.println(ds_temp);
+				break;
+			case MEASURED_FAILED:
+				Serial.println("Measurement failed");
+				break;
+			case TOO_EARLY:
+				Serial.println("Too early");
+				;;
+				break;
+		}
+	}
 }
 
 void ICACHE_FLASH_ATTR loop(void){
@@ -299,11 +313,6 @@ void ICACHE_FLASH_ATTR loop(void){
 		switch (read_sensors(sensor_idx, temp, humidity)) {
 			case MEASURED_OK:
 				sensors_ok[sensor_idx] = true;
-//				Serial.println("Updating accumulator w/ new measurements");
-//				Serial.print("Sensor: ");
-//				Serial.print(sensor_idx);
-//				Serial.print(" temperature: ");
-//				Serial.println(temp);
 				temp_aggregators[sensor_idx]->addValue(temp);
 				hum_aggregators[sensor_idx]->addValue(humidity);
 				break;
